@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learn Katakana & Hiragana with Pokémon (Gen 1-3)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans JP for clear Japanese kana rendering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1120;
+    }
+    .font-japanese {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    }
+    .glow-card {
+      box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.8), 0 0 25px -5px rgba(59, 130, 246, 0.15);
+    }
+    .glow-correct {
+      box-shadow: 0 0 25px rgba(34, 197, 94, 0.4);
+    }
+    .glow-wrong {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .shake-anim {
+      animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.95); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop-anim {
+      animation: pop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    /* Pokeball shake animation */
+    @keyframes ballWiggle {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-18deg); }
+      40% { transform: rotate(18deg); }
+      60% { transform: rotate(-10deg); }
+      80% { transform: rotate(10deg); }
+    }
+    .ball-wiggle {
+      animation: ballWiggle 1.2s ease-in-out infinite;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 selection:bg-blue-600 selection:text-white">
+
+  <!-- Top Navigation & Controls Header -->
+  <header class="w-full max-w-xl flex items-center justify-between mb-3 px-2">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 via-amber-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
+        <!-- Pokeball SVG Icon -->
+        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20" />
+          <circle cx="12" cy="12" r="3" fill="#0b1120" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+          PokéKana <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">Gen 1–3</span>
+        </h1>
+        <div class="text-[11px] text-slate-400 flex items-center gap-1">
+          <span id="playerBadgeName" class="hover:underline cursor-pointer text-slate-300 font-medium">Trainer</span>
+          <span>•</span>
+          <span id="caughtProgressBrief" class="text-emerald-400 font-semibold">0 Caught</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Tool Buttons -->
+    <div class="flex items-center gap-2">
+      <!-- Collection Dex Button -->
+      <button id="openDexBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-bold shadow-md shadow-red-900/40 border border-red-400/30 transition-all active:scale-95">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20" />
+          <circle cx="12" cy="12" r="3" fill="#dc2626" />
+        </svg>
+        <span>Pokédex (<span id="dexHeaderCount">0</span>)</span>
+      </button>
+
+      <!-- Streak Pill -->
+      <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-medium text-amber-400">
+        <i data-lucide="flame" class="w-3.5 h-3.5 fill-amber-400 text-amber-400"></i>
+        <span>Streak: <strong id="streakCount" class="text-white">0</strong></span>
+      </div>
+
+      <!-- Kana Chart Modal Button -->
+      <button id="openChartBtn" title="View Hiragana / Katakana Chart" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors">
+        <i data-lucide="table-properties" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Profile / Share Button -->
+      <button id="openShareBtn" title="Trainer Card & Friend Codes" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors">
+        <i data-lucide="share-2" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Audio Mute Toggle -->
+      <button id="soundToggleBtn" title="Toggle Sound FX" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors">
+        <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Card (Modeled after screenshot) -->
+  <main class="w-full max-w-md my-auto">
+    <div id="gameCard" class="glow-card bg-[#151f33] border border-slate-700/60 rounded-3xl p-6 sm:p-7 flex flex-col items-center relative transition-all duration-300">
+      
+      <!-- Catch Status Pill on top of Card -->
+      <div id="pokeCatchStatusPill" class="absolute -top-3.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg transition-all bg-slate-800 border border-slate-700 text-slate-400">
+        <i data-lucide="circle-dot" class="w-3 h-3"></i>
+        <span id="pokeCatchStatusText">Wild Pokémon (0/3 to Catch)</span>
+      </div>
+
+      <!-- Mode Selector: Romaji Test vs Kana Test -->
+      <div class="w-full grid grid-cols-2 p-1 bg-slate-900/80 border border-slate-700/60 rounded-2xl mb-3 mt-1 text-xs font-semibold">
+        <button id="modeRomajiBtn" type="button" class="mode-tab-btn py-2 px-3 rounded-xl transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5">
+          <i data-lucide="type" class="w-3.5 h-3.5"></i>
+          <span>Romaji Mode</span>
+        </button>
+        <button id="modeKanaBtn" type="button" class="mode-tab-btn py-2 px-3 rounded-xl transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+          <i data-lucide="languages" class="w-3.5 h-3.5"></i>
+          <span>Hiragana Mode</span>
+        </button>
+      </div>
+
+      <!-- Gen Selector Pills -->
+      <div class="w-full flex items-center justify-center gap-1.5 mb-3 text-xs">
+        <button data-gen="all" class="gen-btn active-gen px-2.5 py-1 rounded-lg font-medium transition-all bg-blue-600/30 text-blue-300 border border-blue-500/40">All (1-386)</button>
+        <button data-gen="1" class="gen-btn px-2.5 py-1 rounded-lg font-medium transition-all bg-slate-800 text-slate-400 hover:text-slate-200">Gen 1</button>
+        <button data-gen="2" class="gen-btn px-2.5 py-1 rounded-lg font-medium transition-all bg-slate-800 text-slate-400 hover:text-slate-200">Gen 2</button>
+        <button data-gen="3" class="gen-btn px-2.5 py-1 rounded-lg font-medium transition-all bg-slate-800 text-slate-400 hover:text-slate-200">Gen 3</button>
+      </div>
+
+      <!-- Card Title & Prompt Subtext -->
+      <div class="text-center mb-2">
+        <h2 id="modeTitle" class="text-xl sm:text-2xl font-bold tracking-tight text-white mb-0.5">
+          Learn Romaji with Pokémon
+        </h2>
+        <p id="modeDescription" class="text-xs sm:text-sm text-slate-400 leading-snug">
+          Read the Katakana name and type the Romanization to catch it!
+        </p>
+      </div>
+
+      <!-- Pokémon Artwork Frame -->
+      <div class="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center my-1 select-none">
+        <div class="absolute inset-0 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div id="imgLoader" class="absolute flex items-center justify-center text-slate-500">
+          <i data-lucide="loader-2" class="w-8 h-8 animate-spin"></i>
+        </div>
+
+        <img id="pokeImage"
+             src="" 
+             alt="Pokémon" 
+             class="relative z-10 max-h-full max-w-full object-contain filter drop-shadow-xl transition-all duration-300 transform scale-100"
+             crossorigin="anonymous" />
+      </div>
+
+      <!-- Katakana Display & Dex Number -->
+      <div class="text-center mt-1 mb-3">
+        <div id="katakanaDisplay" class="font-japanese text-3xl sm:text-4xl font-extrabold tracking-wider text-white">
+          ---
+        </div>
+        <div id="dexNumberDisplay" class="text-sm font-semibold text-slate-400 tracking-wide mt-0.5">
+          #---
+        </div>
+      </div>
+
+      <!-- Catch Progress Meter for Current Pokémon -->
+      <div class="w-full bg-slate-900/60 rounded-xl p-2.5 mb-3 border border-slate-700/40">
+        <div class="flex items-center justify-between text-[11px] mb-1">
+          <span class="text-slate-400 font-medium flex items-center gap-1">
+            <i data-lucide="crosshair" class="w-3 h-3 text-red-400"></i> Catch Gauge:
+          </span>
+          <span id="pokeMasteryLabel" class="font-bold text-slate-300">0/3 Correct</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden flex gap-1 p-0.5">
+          <div id="gauge1" class="h-full w-1/3 rounded-full bg-slate-700 transition-colors duration-300"></div>
+          <div id="gauge2" class="h-full w-1/3 rounded-full bg-slate-700 transition-colors duration-300"></div>
+          <div id="gauge3" class="h-full w-1/3 rounded-full bg-slate-700 transition-colors duration-300"></div>
+        </div>
+      </div>
+
+      <!-- Hint Reveal Badges -->
+      <div class="w-full flex flex-col gap-2 mb-3">
+        <div id="englishHintBox" class="hidden transition-all duration-300">
+          <div class="bg-indigo-950/70 border border-indigo-500/40 rounded-xl px-3.5 py-2 flex items-center justify-between text-xs">
+            <span class="text-indigo-300 font-medium flex items-center gap-1.5">
+              <i data-lucide="languages" class="w-3.5 h-3.5"></i> English Name:
+            </span>
+            <span id="englishHintText" class="font-bold text-white text-sm tracking-wide">Pikachu</span>
+          </div>
+        </div>
+
+        <div id="hiraganaHintBox" class="hidden transition-all duration-300">
+          <div class="bg-emerald-950/70 border border-emerald-500/40 rounded-xl px-3.5 py-2 flex items-center justify-between text-xs">
+            <span class="text-emerald-300 font-medium flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Hiragana Hint:
+            </span>
+            <span id="hiraganaHintText" class="font-japanese font-bold text-emerald-200 text-sm tracking-widest">---</span>
+          </div>
+        </div>
+
+        <div id="romajiHintBox" class="hidden transition-all duration-300">
+          <div class="bg-sky-950/70 border border-sky-500/40 rounded-xl px-3.5 py-2 flex items-center justify-between text-xs">
+            <span class="text-sky-300 font-medium flex items-center gap-1.5">
+              <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> Romaji Reading:
+            </span>
+            <span id="romajiHintText" class="font-mono font-bold text-sky-200 text-sm tracking-wider">---</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explicit Hint Buttons Row -->
+      <div class="w-full grid grid-cols-2 gap-2 mb-3">
+        <button id="btnHintEnglish" type="button" class="group flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform"></i>
+          <span>Hint: check english name</span>
+        </button>
+
+        <button id="btnHintHiragana" type="button" class="group flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all">
+          <i data-lucide="eye" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform"></i>
+          <span id="hiraganaHintBtnLabel">Hint: hiragana name</span>
+        </button>
+      </div>
+
+      <!-- Typing Form -->
+      <form id="answerForm" class="w-full flex flex-col gap-2.5" onsubmit="event.preventDefault();">
+        <div class="relative w-full">
+          <input 
+            type="text" 
+            id="answerInput" 
+            autocomplete="off" 
+            autocorrect="off" 
+            autocapitalize="off" 
+            spellcheck="false"
+            placeholder="Type romaji (e.g., pikachuu)..." 
+            class="w-full px-4 py-3.5 rounded-xl bg-[#1e2a44] border-2 border-slate-600/80 focus:border-blue-500 text-white placeholder-slate-400 text-base sm:text-lg text-center outline-none transition-colors duration-200"
+          />
+          <button 
+            type="button" 
+            id="clearInputBtn"
+            title="Clear text"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-md hidden">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div id="romajiConvertRow" class="hidden items-center justify-between px-1 text-[11px] text-slate-400">
+          <span class="flex items-center gap-1">
+            <i data-lucide="keyboard" class="w-3.5 h-3.5"></i>
+            Auto Romaji &rarr; Hiragana typing
+          </span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="romajiConvertToggle" class="sr-only peer" checked>
+            <div class="w-8 h-4.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+
+        <div id="romajiTipRow" class="flex items-center justify-between px-1 text-[11px] text-slate-400">
+          <span class="flex items-center gap-1 truncate max-w-[240px]">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0"></i>
+            Vowels like 'uu', 'oo', or 'ou' are accepted
+          </span>
+          <button type="button" id="btnHintRomaji" class="text-sky-400 hover:underline font-medium text-[11px] flex-shrink-0">Hint: show romaji</button>
+        </div>
+
+        <!-- Feedback Alert -->
+        <div id="feedbackBanner" class="hidden text-xs rounded-xl py-2 px-3 text-center font-medium transition-all"></div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-3 mt-1">
+          <button 
+            type="submit" 
+            id="checkBtn" 
+            class="w-full py-3 px-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] transition-all shadow-md shadow-blue-600/30 flex items-center justify-center gap-2">
+            <span>Check</span>
+          </button>
+
+          <button 
+            type="button" 
+            id="nextBtn" 
+            class="w-full py-3 px-4 rounded-xl font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700/80 hover:text-white active:scale-[0.98] border border-slate-700/70 transition-all flex items-center justify-center gap-2">
+            <span>Next Pokémon</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- Bottom Credits / Dex Totals -->
+      <footer class="mt-4 text-[11px] text-slate-500 text-center flex items-center gap-1.5">
+        <span>Gen 1–3 Pokédex</span>
+        <span>•</span>
+        <button id="footerDexTrigger" class="text-slate-400 hover:text-rose-400 underline font-medium">View My Bag & Collection</button>
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- POKEDEX COLLECTION BAG MODAL -->
+  <div id="dexModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-[#121a2d] border border-slate-700 rounded-3xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-700/80 bg-slate-800/50 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-500 flex items-center justify-center shadow-lg shadow-rose-900/50">
+            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20" />
+              <circle cx="12" cy="12" r="3" fill="#121a2d" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <span>My Pokédex Collection</span>
+              <span id="dexModalCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">0 / 386 Caught</span>
+            </h3>
+            <p class="text-xs text-slate-400">Catch Pokémon by getting them right 3 times. Show your friends your mastery!</p>
+          </div>
+        </div>
+        <button id="closeDexBtn" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Filters & Progress Sub-bar -->
+      <div class="p-3 sm:px-6 bg-[#0e1626] border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <button data-dexfilter="all" class="dex-filter-btn px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium">All Gen 1–3</button>
+          <button data-dexfilter="caught" class="dex-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium">Caught Only</button>
+          <button data-dexfilter="gen1" class="dex-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium">Gen 1</button>
+          <button data-dexfilter="gen2" class="dex-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium">Gen 2</button>
+          <button data-dexfilter="gen3" class="dex-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium">Gen 3</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btnShareFromDex" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>Share My Score Card</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pokédex Grid View -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div id="dexGridContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAINER PROFILE / FRIEND COMPETITION MODAL -->
+  <div id="shareModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-[#151f33] border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="award" class="w-6 h-6 text-amber-400"></i>
+          <h3 class="font-bold text-lg text-white">Trainer Profile & Share</h3>
+        </div>
+        <button id="closeShareBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Trainer Name Customizer -->
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Your Trainer Name:</label>
+        <div class="flex gap-2">
+          <input type="text" id="playerNameInput" maxlength="16" placeholder="Red" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+          <button id="savePlayerNameBtn" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white">Save</button>
+        </div>
+      </div>
+
+      <!-- Share Card Preview -->
+      <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-[#101a2d] border border-slate-700/80 mb-4 text-center">
+        <div class="text-xs uppercase tracking-widest text-blue-400 font-extrabold mb-1">Trainer Card</div>
+        <div id="sharePreviewName" class="text-lg font-black text-white">Trainer Red</div>
+        <div class="text-3xl font-extrabold text-amber-400 my-1.5" id="sharePreviewCaught">0</div>
+        <div class="text-xs text-slate-400">Gen 1–3 Pokémon Caught & Mastered in Japanese!</div>
+      </div>
+
+      <!-- Copyable Competition Message -->
+      <div class="space-y-2 mb-4">
+        <label class="block text-xs font-semibold text-slate-300">Challenge Text for Friends:</label>
+        <textarea id="shareTextPreview" rows="2" readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-300 select-all outline-none resize-none"></textarea>
+        <button id="copyShareTextBtn" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          <span>Copy Challenge Message to Clipboard</span>
+        </button>
+      </div>
+
+      <!-- Export / Import Save Data for Friends -->
+      <div class="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+        <span>Save stored in browser (localStorage)</span>
+        <button id="resetDataBtn" class="text-rose-400 hover:underline">Reset Progress</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAUGHT CELEBRATION POPUP DIALOG -->
+  <div id="catchPopup" class="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 hidden">
+    <div class="bg-gradient-to-b from-slate-900 to-[#0e172a] border-2 border-amber-400/80 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl pop-anim pointer-events-auto">
+      <div class="w-20 h-20 mx-auto my-2 ball-wiggle">
+        <svg class="w-full h-full text-red-500 filter drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10" fill="#ffffff" />
+          <path d="M2 12h20" fill="none" stroke="#0f172a" stroke-width="2" />
+          <path d="M2 12a10 10 0 0 1 20 0" fill="#ef4444" stroke="#0f172a" stroke-width="2" />
+          <circle cx="12" cy="12" r="3.5" fill="#ffffff" stroke="#0f172a" stroke-width="2" />
+          <circle cx="12" cy="12" r="1.5" fill="#0f172a" />
+        </svg>
+      </div>
+      <h3 class="text-xl font-black text-amber-400 tracking-tight mb-1">GOTCHA!</h3>
+      <p id="catchPopupName" class="text-sm font-semibold text-white mb-2">Pikachu was caught!</p>
+      <p class="text-xs text-slate-300 mb-4 font-japanese" id="catchPopupKana">ピカチュウ (ぴかちゅう)</p>
+      <button id="catchPopupOkBtn" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all">
+        Keep Catching!
+      </button>
+    </div>
+  </div>
+
+  <!-- Hiragana / Katakana Reference Chart Modal -->
+  <div id="chartModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-[#151f33] border border-slate-700 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-700/80 flex items-center justify-between bg-slate-800/40">
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-blue-400"></i>
+          <h3 class="font-bold text-base text-white">Kana Reference Chart</h3>
+        </div>
+        <button id="closeChartBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto text-xs space-y-4">
+        <p class="text-slate-300 text-xs">
+          Match Katakana (left) to Hiragana (right) with the Romaji sound in center:
+        </p>
+        <div class="grid grid-cols-5 gap-2 text-center">
+          <div id="kanaGridContainer" class="contents"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Context / Sound FX using Web Audio API -->
+  <script>
+    class SoundEffects {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+      }
+      playCorrect() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+
+        osc1.frequency.setValueAtTime(523.25, now);
+        osc1.frequency.setValueAtTime(659.25, now + 0.1);
+        osc1.frequency.setValueAtTime(783.99, now + 0.2);
+        osc1.frequency.setValueAtTime(1046.50, now + 0.3);
+
+        osc2.frequency.setValueAtTime(1046.50, now + 0.3);
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now + 0.3);
+        osc1.stop(now + 0.6);
+        osc2.stop(now + 0.6);
+      }
+      playCatch() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const now = this.ctx.currentTime;
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.12);
+          osc.stop(now + idx * 0.12 + 0.35);
+        });
+      }
+      playWrong() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.setValueAtTime(130, now + 0.15);
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    }
+
+    const sound = new SoundEffects();
+  </script>
+
+  <!-- Kana Conversion & Romaji Engine -->
+  <script>
+    function katakanaToHiragana(kata) {
+      if (!kata) return '';
+      let result = '';
+      for (let i = 0; i < kata.length; i++) {
+        const code = kata.charCodeAt(i);
+        if (code >= 0x30A1 && code <= 0x30F6) {
+          result += String.fromCharCode(code - 0x60);
+        } else {
+          result += kata[i];
+        }
+      }
+      return result;
+    }
+
+    const KANA_TO_ROMAJI_MAP = {
+      'きゃ':'kya', 'きゅ':'kyu', 'きょ':'kyo',
+      'しゃ':'sha', 'しゅ':'shu', 'しょ':'sho',
+      'ちゃ':'cha', 'ちゅ':'chu', 'ちょ':'cho',
+      'にゃ':'nya', 'にゅ':'nyu', 'にょ':'nyo',
+      'ひゃ':'hya', 'ひゅ':'hyu', 'ひょ':'hyo',
+      'みゃ':'mya', 'みゅ':'myu', 'みょ':'myo',
+      'りゃ':'rya', 'りゅ':'ryu', 'りょ':'ryo',
+      'ぎゃ':'gya', 'ぎゅ':'gyu', 'ぎょ':'gyo',
+      'じゃ':'ja', 'じゅ':'ju', 'じょ':'jo',
+      'ぢゃ':'ja', 'ぢゅ':'ju', 'ぢょ':'jo',
+      'びゃ':'bya', 'びゅ':'byu', 'びょ':'byo',
+      'ぴゃ':'pya', 'ぴゅ':'pyu', 'ぴょ':'pyo',
+      'ふぁ':'fa', 'ふぃ':'fi', 'ふぇ':'fe', 'ふぉ':'fo',
+      'てぃ':'ti', 'でぃ':'di', 'うぃ':'wi', 'うぇ':'we',
+      'あ':'a', 'い':'i', 'う':'u', 'え':'e', 'お':'o',
+      'か':'ka', 'き':'ki', 'く':'ku', 'け':'ke', 'こ':'ko',
+      'さ':'sa', 'し':'shi', 'す':'su', 'せ':'se', 'そ':'so',
+      'た':'ta', 'ち':'chi', 'つ':'tsu', 'て':'te', 'と':'to',
+      'な':'na', 'に':'ni', 'ぬ':'nu', 'ね':'ne', 'の':'no',
+      'は':'ha', 'ひ':'hi', 'ふ':'fu', 'へ':'he', 'ほ':'ho',
+      'ま':'ma', 'み':'mi', 'む':'mu', 'め':'me', 'も':'mo',
+      'や':'ya', 'ゆ':'yu', 'よ':'yo',
+      'ら':'ra', 'り':'ri', 'る':'ru', 'れ':'re', 'ろ':'ro',
+      'わ':'wa', 'を':'wo', 'ん':'n',
+      'が':'ga', 'ぎ':'gi', 'ぐ':'gu', 'げ':'ge', 'ご':'go',
+      'ざ':'za', 'じ':'ji', 'ず':'zu', 'ぜ':'ze', 'ぞ':'zo',
+      'だ':'da', 'ぢ':'ji', 'づ':'zu', 'で':'de', 'ど':'do',
+      'ば':'ba', 'び':'bi', 'ぶ':'bu', 'べ':'be', 'ぼ':'bo',
+      'ぱ':'pa', 'ぴ':'pi', 'ぷ':'pu', 'ぺ':'pe', 'ぽ':'po'
+    };
+
+    function kanaToRomaji(kanaStr) {
+      if (!kanaStr) return '';
+      const hira = katakanaToHiragana(kanaStr);
+      let romaji = '';
+      let i = 0;
+
+      while (i < hira.length) {
+        if (hira[i] === 'っ') {
+          if (i + 1 < hira.length) {
+            const nextPair = hira.substring(i + 1, i + 3);
+            const nextSingle = hira.substring(i + 1, i + 2);
+            const nextRom = KANA_TO_ROMAJI_MAP[nextPair] || KANA_TO_ROMAJI_MAP[nextSingle] || '';
+            if (nextRom) {
+              romaji += (nextRom.startsWith('ch') ? 't' : nextRom[0]);
+            }
+          }
+          i++;
+          continue;
+        }
+
+        if (hira[i] === 'ー') {
+          const prevVowel = romaji.slice(-1);
+          if (['a','i','u','e','o'].includes(prevVowel)) {
+            romaji += prevVowel;
+          } else {
+            romaji += '-';
+          }
+          i++;
+          continue;
+        }
+
+        if (i + 1 < hira.length) {
+          const twoChar = hira.substring(i, i + 2);
+          if (KANA_TO_ROMAJI_MAP[twoChar]) {
+            romaji += KANA_TO_ROMAJI_MAP[twoChar];
+            i += 2;
+            continue;
+          }
+        }
+
+        const oneChar = hira[i];
+        if (KANA_TO_ROMAJI_MAP[oneChar]) {
+          romaji += KANA_TO_ROMAJI_MAP[oneChar];
+        } else {
+          romaji += oneChar;
+        }
+        i++;
+      }
+      return romaji;
+    }
+
+    function normalizeRomaji(str) {
+      if (!str) return '';
+      return str.toLowerCase().trim()
+        .replace(/[\s\-_]/g, '')
+        .replace(/ō|ô/g, 'oo')
+        .replace(/ū|û/g, 'uu')
+        .replace(/ā|â/g, 'aa')
+        .replace(/ī|î/g, 'ii')
+        .replace(/ē|ê/g, 'ee')
+        .replace(/shi/g, 'si')
+        .replace(/chi/g, 'ti')
+        .replace(/tsu/g, 'tu')
+        .replace(/fu/g, 'hu');
+    }
+
+    const ROMAJI_TABLE = [
+      { r: 'kk', h: 'っk' }, { r: 'ss', h: 'っs' }, { r: 'tt', h: 'っt' },
+      { r: 'pp', h: 'っp' }, { r: 'cc', h: 'っc' }, { r: 'gg', h: 'っg' },
+      { r: 'zz', h: 'っz' }, { r: 'dd', h: 'っd' }, { r: 'bb', h: 'っb' },
+      { r: 'kya', h: 'きゃ' }, { r: 'kyu', h: 'きゅ' }, { r: 'kyo', h: 'きょ' },
+      { r: 'sha', h: 'しゃ' }, { r: 'shu', h: 'しゅ' }, { r: 'sho', h: 'しょ' },
+      { r: 'cha', h: 'ちゃ' }, { r: 'chu', h: 'ちゅ' }, { r: 'cho', h: 'ちょ' },
+      { r: 'nya', h: 'にゃ' }, { r: 'nyu', h: 'にゅ' }, { r: 'nyo', h: 'にょ' },
+      { r: 'hya', h: 'ひゃ' }, { r: 'hyu', h: 'ひゅ' }, { r: 'hyo', h: 'ひょ' },
+      { r: 'mya', h: 'みゃ' }, { r: 'myu', h: 'みゅ' }, { r: 'myo', h: 'みょ' },
+      { r: 'rya', h: 'りゃ' }, { r: 'ryu', h: 'りゅ' }, { r: 'ryo', h: 'りょ' },
+      { r: 'gya', h: 'ぎゃ' }, { r: 'gyu', h: 'ぎゅ' }, { r: 'gyo', h: 'ぎょ' },
+      { r: 'bya', h: 'びゃ' }, { r: 'byu', h: 'びゅ' }, { r: 'byo', h: 'びょ' },
+      { r: 'pya', h: 'ぴゃ' }, { r: 'pyu', h: 'ぴゅ' }, { r: 'pyo', h: 'ぴょ' },
+      { r: 'tsu', h: 'つ' }, { r: 'shi', h: 'し' }, { r: 'chi', h: 'ち' },
+      { r: 'ka', h: 'か' }, { r: 'ki', h: 'き' }, { r: 'ku', h: 'く' }, { r: 'ke', h: 'け' }, { r: 'ko', h: 'こ' },
+      { r: 'sa', h: 'さ' }, { r: 'si', h: 'し' }, { r: 'su', h: 'す' }, { r: 'se', h: 'せ' }, { r: 'so', h: 'そ' },
+      { r: 'ta', h: 'た' }, { r: 'ti', h: 'ち' }, { r: 'tu', h: 'つ' }, { r: 'te', h: 'て' }, { r: 'to', h: 'と' },
+      { r: 'na', h: 'な' }, { r: 'ni', h: 'に' }, { r: 'nu', h: 'ぬ' }, { r: 'ne', h: 'ね' }, { r: 'no', h: 'の' },
+      { r: 'ha', h: 'は' }, { r: 'hi', h: 'ひ' }, { r: 'fu', h: 'ふ' }, { r: 'hu', h: 'ふ' }, { r: 'he', h: 'へ' }, { r: 'ho', h: 'ほ' },
+      { r: 'ma', h: 'ま' }, { r: 'mi', h: 'み' }, { r: 'mu', h: 'む' }, { r: 'me', h: 'め' }, { r: 'mo', h: 'も' },
+      { r: 'ya', h: 'や' }, { r: 'yu', h: 'ゆ' }, { r: 'yo', h: 'よ' },
+      { r: 'ra', h: 'ら' }, { r: 'ri', h: 'り' }, { r: 'ru', h: 'る' }, { r: 're', h: 'れ' }, { r: 'ro', h: 'ろ' },
+      { r: 'wa', h: 'わ' }, { r: 'wo', h: 'を' },
+      { r: 'ga', h: 'が' }, { r: 'gi', h: 'ぎ' }, { r: 'gu', h: 'ぐ' }, { r: 'ge', h: 'げ' }, { r: 'go', h: 'ご' },
+      { r: 'za', h: 'ざ' }, { r: 'ji', h: 'じ' }, { r: 'zu', h: 'ず' }, { r: 'ze', h: 'ぜ' }, { r: 'zo', h: 'ぞ' },
+      { r: 'da', h: 'だ' }, { r: 'di', h: 'ぢ' }, { r: 'du', h: 'づ' }, { r: 'de', h: 'で' }, { r: 'do', h: 'ど' },
+      { r: 'ba', h: 'ば' }, { r: 'bi', h: 'び' }, { r: 'bu', h: 'ぶ' }, { r: 'be', h: 'べ' }, { r: 'bo', h: 'ぼ' },
+      { r: 'pa', h: 'ぱ' }, { r: 'pi', h: 'ぴ' }, { r: 'pu', h: 'ぷ' }, { r: 'pe', h: 'ぺ' }, { r: 'po', h: 'ぽ' },
+      { r: 'nn', h: 'ん' }, { r: "n'", h: 'ん' },
+      { r: 'a', h: 'あ' }, { r: 'i', h: 'い' }, { r: 'u', h: 'う' }, { r: 'e', h: 'え' }, { r: 'o', h: 'お' },
+      { r: '-', h: 'ー' }
+    ];
+
+    function convertRomajiToHiragana(input) {
+      let str = input.toLowerCase();
+      for (let i = 0; i < ROMAJI_TABLE.length; i++) {
+        const item = ROMAJI_TABLE[i];
+        str = str.split(item.r).join(item.h);
+      }
+      return str;
+    }
+  </script>
+
+  <!-- Gen 1-3 Dataset & Storage -->
+  <script>
+    const POKEMON_GEN123_DATASET = [
+      // GEN 1
+      { id: 1, name: "Bulbasaur", jpName: "フシギダネ", gen: 1 },
+      { id: 4, name: "Charmander", jpName: "ヒトカゲ", gen: 1 },
+      { id: 6, name: "Charizard", jpName: "リザードン", gen: 1 },
+      { id: 7, name: "Squirtle", jpName: "ゼニガメ", gen: 1 },
+      { id: 9, name: "Blastoise", jpName: "カメックス", gen: 1 },
+      { id: 12, name: "Butterfree", jpName: "バタフリー", gen: 1 },
+      { id: 25, name: "Pikachu", jpName: "ピカチュウ", gen: 1 },
+      { id: 26, name: "Raichu", jpName: "ライチュウ", gen: 1 },
+      { id: 35, name: "Clefairy", jpName: "ピッピ", gen: 1 },
+      { id: 39, name: "Jigglypuff", jpName: "プリン", gen: 1 },
+      { id: 52, name: "Meowth", jpName: "ニャース", gen: 1 },
+      { id: 54, name: "Psyduck", jpName: "コダック", gen: 1 },
+      { id: 68, name: "Machamp", jpName: "カイリキー", gen: 1 },
+      { id: 94, name: "Gengar", jpName: "ゲンガー", gen: 1 },
+      { id: 104, name: "Cubone", jpName: "カラカラ", gen: 1 },
+      { id: 129, name: "Magikarp", jpName: "コイキング", gen: 1 },
+      { id: 130, name: "Gyarados", jpName: "ギャラドス", gen: 1 },
+      { id: 131, name: "Lapras", jpName: "ラプラス", gen: 1 },
+      { id: 132, name: "Ditto", jpName: "メタモン", gen: 1 },
+      { id: 133, name: "Eevee", jpName: "イーブイ", gen: 1 },
+      { id: 134, name: "Vaporeon", jpName: "シャワーズ", gen: 1 },
+      { id: 135, name: "Jolteon", jpName: "サンダース", gen: 1 },
+      { id: 136, name: "Flareon", jpName: "ブースター", gen: 1 },
+      { id: 143, name: "Snorlax", jpName: "カビゴン", gen: 1 },
+      { id: 144, name: "Articuno", jpName: "フリーザー", gen: 1 },
+      { id: 145, name: "Zapdos", jpName: "サンダー", gen: 1 },
+      { id: 146, name: "Moltres", jpName: "ファイヤー", gen: 1 },
+      { id: 149, name: "Dragonite", jpName: "カイリュー", gen: 1 },
+      { id: 150, name: "Mewtwo", jpName: "ミュウツー", gen: 1 },
+      { id: 151, name: "Mew", jpName: "ミュウ", gen: 1 },
+
+      // GEN 2
+      { id: 152, name: "Chikorita", jpName: "チコリータ", gen: 2 },
+      { id: 155, name: "Cyndaquil", jpName: "ヒノアラシ", gen: 2 },
+      { id: 157, name: "Typhlosion", jpName: "バクフーン", gen: 2 },
+      { id: 158, name: "Totodile", jpName: "ワニノコ", gen: 2 },
+      { id: 160, name: "Feraligatr", jpName: "オーダイル", gen: 2 },
+      { id: 172, name: "Pichu", jpName: "ピチュー", gen: 2 },
+      { id: 175, name: "Togepi", jpName: "トゲピー", gen: 2 },
+      { id: 179, name: "Mareep", jpName: "メリープ", gen: 2 },
+      { id: 181, name: "Ampharos", jpName: "デンリュウ", gen: 2 },
+      { id: 183, name: "Marill", jpName: "マリル", gen: 2 },
+      { id: 185, name: "Sudowoodo", jpName: "ウソッキー", gen: 2 },
+      { id: 196, name: "Espeon", jpName: "エーフィ", gen: 2 },
+      { id: 197, name: "Umbreon", jpName: "ブラッキー", gen: 2 },
+      { id: 202, name: "Wobbuffet", jpName: "ソーナンス", gen: 2 },
+      { id: 212, name: "Scizor", jpName: "ハッサム", gen: 2 },
+      { id: 214, name: "Heracross", jpName: "ヘラクロス", gen: 2 },
+      { id: 225, name: "Delibird", jpName: "デリバード", gen: 2 },
+      { id: 227, name: "Skarmory", jpName: "エアームド", gen: 2 },
+      { id: 228, name: "Houndour", jpName: "デルビル", gen: 2 },
+      { id: 229, name: "Houndoom", jpName: "ヘルガー", gen: 2 },
+      { id: 243, name: "Raikou", jpName: "ライコウ", gen: 2 },
+      { id: 244, name: "Entei", jpName: "エンテイ", gen: 2 },
+      { id: 245, name: "Suicune", jpName: "スイクン", gen: 2 },
+      { id: 246, name: "Larvitar", jpName: "ヨーギラス", gen: 2 },
+      { id: 248, name: "Tyranitar", jpName: "バンギラス", gen: 2 },
+      { id: 249, name: "Lugia", jpName: "ルギア", gen: 2 },
+      { id: 250, name: "Ho-Oh", jpName: "ホウオウ", gen: 2 },
+      { id: 251, name: "Celebi", jpName: "セレビィ", gen: 2 },
+
+      // GEN 3
+      { id: 252, name: "Treecko", jpName: "キモリ", gen: 3 },
+      { id: 254, name: "Sceptile", jpName: "ジュカイン", gen: 3 },
+      { id: 255, name: "Torchic", jpName: "アチャモ", gen: 3 },
+      { id: 257, name: "Blaziken", jpName: "バシャーモ", gen: 3 },
+      { id: 258, name: "Mudkip", jpName: "ミズゴロウ", gen: 3 },
+      { id: 260, name: "Swampert", jpName: "ラグラージ", gen: 3 },
+      { id: 280, name: "Ralts", jpName: "ラルトス", gen: 3 },
+      { id: 282, name: "Gardevoir", jpName: "サーナイト", gen: 3 },
+      { id: 289, name: "Slaking", jpName: "ケッキング", gen: 3 },
+      { id: 302, name: "Sableye", jpName: "ヤミラミ", gen: 3 },
+      { id: 303, name: "Mawile", jpName: "クチート", gen: 3 },
+      { id: 304, name: "Aron", jpName: "ココドラ", gen: 3 },
+      { id: 306, name: "Aggron", jpName: "ボスゴドラ", gen: 3 },
+      { id: 330, name: "Flygon", jpName: "フライゴン", gen: 3 },
+      { id: 334, name: "Altaria", jpName: "チルタリス", gen: 3 },
+      { id: 349, name: "Feebas", jpName: "ヒンバス", gen: 3 },
+      { id: 350, name: "Milotic", jpName: "ミロカロス", gen: 3 },
+      { id: 359, name: "Absol", jpName: "アブソル", gen: 3 },
+      { id: 365, name: "Walrein", jpName: "トドゼルガ", gen: 3 },
+      { id: 371, name: "Bagon", jpName: "タツベイ", gen: 3 },
+      { id: 373, name: "Salamence", jpName: "ボーマンダ", gen: 3 },
+      { id: 374, name: "Beldum", jpName: "ダンバル", gen: 3 },
+      { id: 376, name: "Metagross", jpName: "メタグロス", gen: 3 },
+      { id: 377, name: "Regirock", jpName: "レジロック", gen: 3 },
+      { id: 378, name: "Regice", jpName: "レジアイス", gen: 3 },
+      { id: 379, name: "Registeel", jpName: "レジスチル", gen: 3 },
+      { id: 380, name: "Latias", jpName: "ラティアス", gen: 3 },
+      { id: 381, name: "Latios", jpName: "ラティオス", gen: 3 },
+      { id: 382, name: "Kyogre", jpName: "カイオーガ", gen: 3 },
+      { id: 383, name: "Groudon", jpName: "グラードン", gen: 3 },
+      { id: 384, name: "Rayquaza", jpName: "レックウザ", gen: 3 },
+      { id: 385, name: "Jirachi", jpName: "ジラーチ", gen: 3 },
+      { id: 386, name: "Deoxys", jpName: "デオキシス", gen: 3 }
+    ];
+
+    POKEMON_GEN123_DATASET.forEach(p => {
+      p.hiragana = katakanaToHiragana(p.jpName);
+      p.romaji = kanaToRomaji(p.jpName);
+    });
+
+    const dynamicPokeCache = new Map();
+
+    // PLAYER CATCH & STORAGE ENGINE
+    // Schema in localStorage:
+    // trainerName: string
+    // caughtData: { [pokemonId]: { correctCount: number, caught: boolean, dateCaught: string } }
+    const STORAGE_KEY_NAME = 'pokekana_player_name';
+    const STORAGE_KEY_CATCHES = 'pokekana_catches';
+
+    let playerName = localStorage.getItem(STORAGE_KEY_NAME) || 'Trainer Red';
+    let catchesData = {};
+
+    try {
+      catchesData = JSON.parse(localStorage.getItem(STORAGE_KEY_CATCHES) || '{}');
+    } catch (e) {
+      catchesData = {};
+    }
+
+    function savePlayerData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_NAME, playerName);
+        localStorage.setItem(STORAGE_KEY_CATCHES, JSON.stringify(catchesData));
+      } catch (e) {
+        console.error('Storage write error', e);
+      }
+      updateHeaderCounts();
+    }
+
+    function getCaughtCount() {
+      let count = 0;
+      for (const id in catchesData) {
+        if (catchesData[id] && catchesData[id].caught) count++;
+      }
+      return count;
+    }
+
+    function getPokemonCatchRecord(id) {
+      if (!catchesData[id]) {
+        catchesData[id] = { correctCount: 0, caught: false, dateCaught: null };
+      }
+      return catchesData[id];
+    }
+  </script>
+
+  <!-- Game Logic, Catch Mechanics, Modals & Sharing -->
+  <script>
+    let gameMode = 'romaji';
+    let currentPokemon = null;
+    let selectedGen = 'all';
+    let currentStreak = 0;
+    let isAnswerChecked = false;
+    let currentDexFilter = 'all';
+
+    // DOM UI Refs
+    const modeRomajiBtn = document.getElementById('modeRomajiBtn');
+    const modeKanaBtn = document.getElementById('modeKanaBtn');
+    const modeTitle = document.getElementById('modeTitle');
+    const modeDescription = document.getElementById('modeDescription');
+    const romajiConvertRow = document.getElementById('romajiConvertRow');
+    const romajiTipRow = document.getElementById('romajiTipRow');
+
+    const gameCard = document.getElementById('gameCard');
+    const pokeImage = document.getElementById('pokeImage');
+    const imgLoader = document.getElementById('imgLoader');
+    const katakanaDisplay = document.getElementById('katakanaDisplay');
+    const dexNumberDisplay = document.getElementById('dexNumberDisplay');
+    const pokeCatchStatusPill = document.getElementById('pokeCatchStatusPill');
+    const pokeCatchStatusText = document.getElementById('pokeCatchStatusText');
+    const pokeMasteryLabel = document.getElementById('pokeMasteryLabel');
+    const gauge1 = document.getElementById('gauge1');
+    const gauge2 = document.getElementById('gauge2');
+    const gauge3 = document.getElementById('gauge3');
+
+    // Hints
+    const btnHintEnglish = document.getElementById('btnHintEnglish');
+    const btnHintHiragana = document.getElementById('btnHintHiragana');
+    const btnHintRomaji = document.getElementById('btnHintRomaji');
+    const englishHintBox = document.getElementById('englishHintBox');
+    const englishHintText = document.getElementById('englishHintText');
+    const hiraganaHintBox = document.getElementById('hiraganaHintBox');
+    const hiraganaHintText = document.getElementById('hiraganaHintText');
+    const romajiHintBox = document.getElementById('romajiHintBox');
+    const romajiHintText = document.getElementById('romajiHintText');
+
+    // Inputs & Buttons
+    const answerInput = document.getElementById('answerInput');
+    const clearInputBtn = document.getElementById('clearInputBtn');
+    const answerForm = document.getElementById('answerForm');
+    const checkBtn = document.getElementById('checkBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const feedbackBanner = document.getElementById('feedbackBanner');
+    const romajiConvertToggle = document.getElementById('romajiConvertToggle');
+    const streakCount = document.getElementById('streakCount');
+    const playerBadgeName = document.getElementById('playerBadgeName');
+    const caughtProgressBrief = document.getElementById('caughtProgressBrief');
+    const dexHeaderCount = document.getElementById('dexHeaderCount');
+
+    // Modals
+    const dexModal = document.getElementById('dexModal');
+    const openDexBtn = document.getElementById('openDexBtn');
+    const closeDexBtn = document.getElementById('closeDexBtn');
+    const footerDexTrigger = document.getElementById('footerDexTrigger');
+    const dexGridContainer = document.getElementById('dexGridContainer');
+    const dexModalCountBadge = document.getElementById('dexModalCountBadge');
+    const dexFilterButtons = document.querySelectorAll('.dex-filter-btn');
+
+    const shareModal = document.getElementById('shareModal');
+    const openShareBtn = document.getElementById('openShareBtn');
+    const closeShareBtn = document.getElementById('closeShareBtn');
+    const btnShareFromDex = document.getElementById('btnShareFromDex');
+    const playerNameInput = document.getElementById('playerNameInput');
+    const savePlayerNameBtn = document.getElementById('savePlayerNameBtn');
+    const sharePreviewName = document.getElementById('sharePreviewName');
+    const sharePreviewCaught = document.getElementById('sharePreviewCaught');
+    const shareTextPreview = document.getElementById('shareTextPreview');
+    const copyShareTextBtn = document.getElementById('copyShareTextBtn');
+    const resetDataBtn = document.getElementById('resetDataBtn');
+
+    const catchPopup = document.getElementById('catchPopup');
+    const catchPopupName = document.getElementById('catchPopupName');
+    const catchPopupKana = document.getElementById('catchPopupKana');
+    const catchPopupOkBtn = document.getElementById('catchPopupOkBtn');
+
+    const openChartBtn = document.getElementById('openChartBtn');
+    const closeChartBtn = document.getElementById('closeChartBtn');
+    const chartModal = document.getElementById('chartModal');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const genButtons = document.querySelectorAll('.gen-btn');
+
+    function updateHeaderCounts() {
+      const caught = getCaughtCount();
+      caughtProgressBrief.textContent = `${caught} Caught`;
+      dexHeaderCount.textContent = caught;
+      dexModalCountBadge.textContent = `${caught} / 386 Caught`;
+      playerBadgeName.textContent = playerName;
+      sharePreviewName.textContent = `Trainer ${playerName}`;
+      sharePreviewCaught.textContent = caught;
+
+      const shareMsg = `🎮 Trainer ${playerName} has caught & mastered ${caught} Gen 1–3 Pokémon on PokéKana! Can you beat my Katakana score? Check it out here: ${window.location.href}`;
+      shareTextPreview.value = shareMsg;
+    }
+
+    function updateCatchGauges(pokemonId) {
+      const record = getPokemonCatchRecord(pokemonId);
+      const count = Math.min(record.correctCount, 3);
+      pokeMasteryLabel.textContent = `${count}/3 Correct`;
+
+      gauge1.className = count >= 1 ? 'h-full w-1/3 rounded-full bg-emerald-500 transition-colors' : 'h-full w-1/3 rounded-full bg-slate-700 transition-colors';
+      gauge2.className = count >= 2 ? 'h-full w-1/3 rounded-full bg-emerald-500 transition-colors' : 'h-full w-1/3 rounded-full bg-slate-700 transition-colors';
+      gauge3.className = count >= 3 ? 'h-full w-1/3 rounded-full bg-emerald-400 transition-colors' : 'h-full w-1/3 rounded-full bg-slate-700 transition-colors';
+
+      if (record.caught) {
+        pokeCatchStatusPill.className = 'absolute -top-3.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg transition-all bg-emerald-950 border border-emerald-500/60 text-emerald-300';
+        pokeCatchStatusText.textContent = `★ CAUGHT & MASTERED (${record.correctCount}x)`;
+      } else {
+        pokeCatchStatusPill.className = 'absolute -top-3.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg transition-all bg-slate-800 border border-slate-700 text-slate-400';
+        pokeCatchStatusText.textContent = `Wild Pokémon (${count}/3 to Catch)`;
+      }
+    }
+
+    // Set Game Mode (Romaji vs Kana)
+    function setGameMode(mode) {
+      gameMode = mode;
+      sound.playClick();
+
+      if (mode === 'romaji') {
+        modeRomajiBtn.className = 'mode-tab-btn py-2 px-3 rounded-xl transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+        modeKanaBtn.className = 'mode-tab-btn py-2 px-3 rounded-xl transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5';
+        modeTitle.textContent = 'Learn Romaji with Pokémon';
+        modeDescription.textContent = 'Read the Katakana name and type the Romanization to catch it!';
+        answerInput.placeholder = 'Type romaji (e.g., pikachuu or pikachu)...';
+        answerInput.classList.remove('font-japanese');
+        romajiConvertRow.classList.add('hidden');
+        romajiConvertRow.classList.remove('flex');
+        romajiTipRow.classList.remove('hidden');
+        romajiTipRow.classList.add('flex');
+      } else {
+        modeKanaBtn.className = 'mode-tab-btn py-2 px-3 rounded-xl transition-all bg-blue-600 text-white shadow-sm flex items-center justify-center gap-1.5';
+        modeRomajiBtn.className = 'mode-tab-btn py-2 px-3 rounded-xl transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5';
+        modeTitle.textContent = 'Learn Katakana with Pokémon';
+        modeDescription.textContent = 'See the Pokémon\'s Katakana name and type it in Hiragana.';
+        answerInput.placeholder = 'Type here in hiragana...';
+        answerInput.classList.add('font-japanese');
+        romajiConvertRow.classList.remove('hidden');
+        romajiConvertRow.classList.add('flex');
+        romajiTipRow.classList.add('hidden');
+        romajiTipRow.classList.remove('flex');
+      }
+
+      answerInput.value = '';
+      answerInput.focus();
+      hideFeedback();
+    }
+
+    modeRomajiBtn.addEventListener('click', () => setGameMode('romaji'));
+    modeKanaBtn.addEventListener('click', () => setGameMode('kana'));
+
+    function getFilteredPool() {
+      if (selectedGen === '1') return POKEMON_GEN123_DATASET.filter(p => p.id <= 151);
+      if (selectedGen === '2') return POKEMON_GEN123_DATASET.filter(p => p.id >= 152 && p.id <= 251);
+      if (selectedGen === '3') return POKEMON_GEN123_DATASET.filter(p => p.id >= 252 && p.id <= 386);
+      return POKEMON_GEN123_DATASET;
+    }
+
+    async function fetchRandomGen123Pokemon() {
+      let min = 1, max = 386;
+      if (selectedGen === '1') { min = 1; max = 151; }
+      else if (selectedGen === '2') { min = 152; max = 251; }
+      else if (selectedGen === '3') { min = 252; max = 386; }
+
+      const pool = getFilteredPool();
+      const usePreset = Math.random() < 0.75 || pool.length === 0;
+
+      if (usePreset && pool.length > 0) {
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        return pool[randomIndex];
+      }
+
+      const randomId = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (dynamicPokeCache.has(randomId)) {
+        return dynamicPokeCache.get(randomId);
+      }
+
+      try {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${randomId}/`);
+        if (!res.ok) throw new Error('PokeAPI response error');
+        const data = await res.json();
+        
+        const jaEntry = data.names.find(n => n.language.name === 'ja-Hrkt' || n.language.name === 'ja');
+        const enEntry = data.names.find(n => n.language.name === 'en');
+
+        const katakana = jaEntry ? jaEntry.name : 'ピカチュウ';
+        const english = enEntry ? enEntry.name : data.name;
+
+        const pokeObj = {
+          id: randomId,
+          name: english,
+          jpName: katakana,
+          hiragana: katakanaToHiragana(katakana),
+          romaji: kanaToRomaji(katakana),
+          gen: randomId <= 151 ? 1 : (randomId <= 251 ? 2 : 3)
+        };
+        dynamicPokeCache.set(randomId, pokeObj);
+        return pokeObj;
+      } catch (err) {
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        return pool[randomIndex];
+      }
+    }
+
+    async function loadNewPokemon() {
+      isAnswerChecked = false;
+      answerInput.value = '';
+      answerInput.disabled = false;
+      clearInputBtn.classList.add('hidden');
+      hideFeedback();
+      hideHints();
+
+      gameCard.classList.remove('glow-correct', 'glow-wrong', 'shake-anim');
+      answerInput.classList.remove('border-green-500', 'border-red-500', 'bg-emerald-950/20', 'bg-rose-950/20');
+      answerInput.classList.add('border-slate-600/80');
+
+      imgLoader.classList.remove('hidden');
+      pokeImage.style.opacity = '0';
+      katakanaDisplay.textContent = '...';
+      dexNumberDisplay.textContent = '#---';
+
+      try {
+        currentPokemon = await fetchRandomGen123Pokemon();
+        const artUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${currentPokemon.id}.png`;
+        
+        pokeImage.onload = () => {
+          imgLoader.classList.add('hidden');
+          pokeImage.style.opacity = '1';
+        };
+        pokeImage.onerror = () => {
+          pokeImage.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${currentPokemon.id}.png`;
+          imgLoader.classList.add('hidden');
+          pokeImage.style.opacity = '1';
+        };
+        pokeImage.src = artUrl;
+
+        katakanaDisplay.textContent = currentPokemon.jpName;
+        dexNumberDisplay.textContent = `#${String(currentPokemon.id).padStart(3, '0')}`;
+
+        englishHintText.textContent = currentPokemon.name;
+        hiraganaHintText.textContent = currentPokemon.hiragana;
+        romajiHintText.textContent = currentPokemon.romaji;
+
+        updateCatchGauges(currentPokemon.id);
+
+        if (window.innerWidth > 640) {
+          answerInput.focus();
+        }
+      } catch (e) {
+        console.error('Error loading Pokémon:', e);
+      }
+    }
+
+    function checkAnswer() {
+      if (!currentPokemon || isAnswerChecked) return;
+
+      const userText = answerInput.value.trim();
+      if (!userText) {
+        flashInputShake();
+        return;
+      }
+
+      if (gameMode === 'romaji') {
+        const normalizedUser = normalizeRomaji(userText);
+        const canonicalRomaji = normalizeRomaji(currentPokemon.romaji);
+        
+        const simplifiedCanonical = canonicalRomaji.replace(/aa/g, 'a').replace(/ii/g, 'i').replace(/uu/g, 'u').replace(/ee/g, 'e').replace(/oo/g, 'o');
+        const simplifiedUser = normalizedUser.replace(/aa/g, 'a').replace(/ii/g, 'i').replace(/uu/g, 'u').replace(/ee/g, 'e').replace(/oo/g, 'o');
+        const normalizedEnglish = normalizeRomaji(currentPokemon.name);
+
+        const isCorrect = (normalizedUser === canonicalRomaji) ||
+                          (simplifiedUser === simplifiedCanonical) ||
+                          (normalizedUser === normalizedEnglish) ||
+                          (canonicalRomaji.endsWith('ou') && normalizedUser === canonicalRomaji.replace(/ou$/, 'oo')) ||
+                          (canonicalRomaji.endsWith('oo') && normalizedUser === canonicalRomaji.replace(/oo$/, 'ou'));
+
+        if (isCorrect) {
+          handleSuccess(`正解 (Correct)! Romaji: "${currentPokemon.romaji}" (${currentPokemon.name})`);
+        } else {
+          handleWrong(`Romaji is: "${currentPokemon.romaji}" (or "${simplifiedCanonical}")`);
+        }
+      } else {
+        const targetHiragana = currentPokemon.hiragana.trim();
+        const targetKatakana = currentPokemon.jpName.trim();
+        const normalizedUser = userText.toLowerCase();
+
+        const isCorrect = (normalizedUser === targetHiragana) || 
+                          (normalizedUser === targetKatakana) ||
+                          (katakanaToHiragana(normalizedUser) === targetHiragana);
+
+        if (isCorrect) {
+          handleSuccess(`正解 (Correct)! That is ${currentPokemon.name}!`);
+        } else {
+          handleWrong(`The hiragana is: 「${targetHiragana}」`);
+        }
+      }
+    }
+
+    function handleSuccess(msg) {
+      isAnswerChecked = true;
+      currentStreak++;
+      streakCount.textContent = currentStreak;
+
+      // Handle Catch Logic:
+      const record = getPokemonCatchRecord(currentPokemon.id);
+      record.correctCount = (record.correctCount || 0) + 1;
+
+      let justCaught = false;
+      if (record.correctCount >= 3 && !record.caught) {
+        record.caught = true;
+        record.dateCaught = new Date().toISOString();
+        justCaught = true;
+      }
+
+      savePlayerData();
+      updateCatchGauges(currentPokemon.id);
+
+      if (justCaught) {
+        sound.playCatch();
+        showCatchModal(currentPokemon);
+      } else {
+        sound.playCorrect();
+      }
+
+      gameCard.classList.remove('glow-wrong', 'shake-anim');
+      gameCard.classList.add('glow-correct');
+
+      answerInput.classList.remove('border-slate-600/80', 'border-red-500');
+      answerInput.classList.add('border-green-500', 'bg-emerald-950/20');
+
+      showFeedback(true, msg);
+
+      confetti({
+        particleCount: justCaught ? 90 : 45,
+        spread: justCaught ? 90 : 60,
+        origin: { y: 0.65 },
+        colors: ['#ef4444', '#3b82f6', '#fbbf24', '#10b981']
+      });
+
+      englishHintBox.classList.remove('hidden');
+      englishHintBox.classList.add('pop-anim');
+    }
+
+    function handleWrong(solutionDetail) {
+      currentStreak = 0;
+      streakCount.textContent = '0';
+
+      sound.playWrong();
+      flashInputShake();
+
+      gameCard.classList.remove('glow-correct');
+      gameCard.classList.add('glow-wrong');
+
+      answerInput.classList.remove('border-slate-600/80', 'border-green-500');
+      answerInput.classList.add('border-red-500', 'bg-rose-950/20');
+
+      showFeedback(false, `Not quite! ${solutionDetail}`);
+    }
+
+    function flashInputShake() {
+      gameCard.classList.remove('shake-anim');
+      void gameCard.offsetWidth;
+      gameCard.classList.add('shake-anim');
+    }
+
+    function showFeedback(isSuccess, message) {
+      feedbackBanner.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/40', 'bg-rose-500/20', 'text-rose-300', 'border-rose-500/40');
+      feedbackBanner.classList.add('pop-anim', 'border');
+
+      if (isSuccess) {
+        feedbackBanner.classList.add('bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/40');
+      } else {
+        feedbackBanner.classList.add('bg-rose-500/20', 'text-rose-300', 'border-rose-500/40');
+      }
+      feedbackBanner.textContent = message;
+    }
+
+    function hideFeedback() {
+      feedbackBanner.classList.add('hidden');
+      feedbackBanner.textContent = '';
+    }
+
+    function hideHints() {
+      englishHintBox.classList.add('hidden');
+      hiraganaHintBox.classList.add('hidden');
+      romajiHintBox.classList.add('hidden');
+    }
+
+    function showCatchModal(pokemon) {
+      catchPopupName.textContent = `${pokemon.name} was caught & added to your Pokédex!`;
+      catchPopupKana.textContent = `${pokemon.jpName} (${pokemon.hiragana})`;
+      catchPopup.classList.remove('hidden');
+    }
+
+    catchPopupOkBtn.addEventListener('click', () => {
+      catchPopup.classList.add('hidden');
+      sound.playClick();
+      loadNewPokemon();
+    });
+
+    // Explicit Hint Buttons
+    btnHintEnglish.addEventListener('click', () => {
+      sound.playClick();
+      englishHintBox.classList.toggle('hidden');
+      if (!englishHintBox.classList.contains('hidden')) englishHintBox.classList.add('pop-anim');
+    });
+
+    btnHintHiragana.addEventListener('click', () => {
+      sound.playClick();
+      hiraganaHintBox.classList.toggle('hidden');
+      if (!hiraganaHintBox.classList.contains('hidden')) hiraganaHintBox.classList.add('pop-anim');
+    });
+
+    btnHintRomaji.addEventListener('click', () => {
+      sound.playClick();
+      romajiHintBox.classList.toggle('hidden');
+      if (!romajiHintBox.classList.contains('hidden')) romajiHintBox.classList.add('pop-anim');
+    });
+
+    // Input Events
+    answerInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (val.length > 0) clearInputBtn.classList.remove('hidden');
+      else clearInputBtn.classList.add('hidden');
+
+      if (gameMode === 'kana' && romajiConvertToggle.checked) {
+        const converted = convertRomajiToHiragana(val);
+        if (converted !== val) e.target.value = converted;
+      }
+    });
+
+    clearInputBtn.addEventListener('click', () => {
+      answerInput.value = '';
+      clearInputBtn.classList.add('hidden');
+      answerInput.focus();
+    });
+
+    checkBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      checkAnswer();
+    });
+
+    answerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (isAnswerChecked) loadNewPokemon();
+      else checkAnswer();
+    });
+
+    nextBtn.addEventListener('click', () => {
+      sound.playClick();
+      loadNewPokemon();
+    });
+
+    // Gen Selector Tabs
+    genButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sound.playClick();
+        genButtons.forEach(b => {
+          b.classList.remove('bg-blue-600/30', 'text-blue-300', 'border', 'border-blue-500/40');
+          b.classList.add('bg-slate-800', 'text-slate-400');
+        });
+        btn.classList.add('bg-blue-600/30', 'text-blue-300', 'border', 'border-blue-500/40');
+        btn.classList.remove('bg-slate-800', 'text-slate-400');
+        selectedGen = btn.getAttribute('data-gen');
+        loadNewPokemon();
+      });
+    });
+
+    // POKEDEX BAG MODAL RENDERING
+    function renderDexGrid() {
+      dexGridContainer.innerHTML = '';
+      const pool = POKEMON_GEN123_DATASET;
+
+      pool.forEach(item => {
+        const record = getPokemonCatchRecord(item.id);
+        const isCaught = record.caught;
+
+        if (currentDexFilter === 'caught' && !isCaught) return;
+        if (currentDexFilter === 'gen1' && item.gen !== 1) return;
+        if (currentDexFilter === 'gen2' && item.gen !== 2) return;
+        if (currentDexFilter === 'gen3' && item.gen !== 3) return;
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border transition-all flex flex-col items-center justify-between text-center relative ${
+          isCaught 
+            ? 'bg-slate-800/90 border-emerald-500/40 shadow-md shadow-emerald-950/20' 
+            : 'bg-slate-900/50 border-slate-800 opacity-60'
+        }`;
+
+        const dexNum = `#${String(item.id).padStart(3, '0')}`;
+        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.id}.png`;
+
+        card.innerHTML = `
+          <div class="w-full flex items-center justify-between text-[10px] text-slate-400 mb-1">
+            <span class="font-mono font-semibold">${dexNum}</span>
+            ${isCaught ? `<span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40">${record.correctCount}x</span>` : '<span class="text-slate-500">?</span>'}
+          </div>
+          <div class="w-16 h-16 sm:w-20 sm:h-20 my-1 flex items-center justify-center">
+            <img src="${spriteUrl}" alt="${item.name}" class="max-h-full max-w-full object-contain ${isCaught ? 'filter drop-shadow-md' : 'brightness-0 opacity-20'}" />
+          </div>
+          <div class="w-full mt-1">
+            <div class="font-japanese font-bold text-xs ${isCaught ? 'text-white' : 'text-slate-500'}">${isCaught ? item.jpName : '???'}</div>
+            <div class="text-[10px] ${isCaught ? 'text-slate-300 font-medium' : 'text-slate-600'} truncate">${isCaught ? item.name : 'Unknown'}</div>
+          </div>
+        `;
+
+        dexGridContainer.appendChild(card);
+      });
+    }
+
+    dexFilterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sound.playClick();
+        dexFilterButtons.forEach(b => {
+          b.className = 'dex-filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium';
+        });
+        btn.className = 'dex-filter-btn px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium';
+        currentDexFilter = btn.getAttribute('data-dexfilter');
+        renderDexGrid();
+      });
+    });
+
+    openDexBtn.addEventListener('click', () => {
+      sound.playClick();
+      renderDexGrid();
+      dexModal.classList.remove('hidden');
+    });
+
+    footerDexTrigger.addEventListener('click', () => {
+      sound.playClick();
+      renderDexGrid();
+      dexModal.classList.remove('hidden');
+    });
+
+    closeDexBtn.addEventListener('click', () => dexModal.classList.add('hidden'));
+
+    dexModal.addEventListener('click', (e) => {
+      if (e.target === dexModal) dexModal.classList.add('hidden');
+    });
+
+    // SHARE / PROFILE MODAL
+    openShareBtn.addEventListener('click', () => {
+      sound.playClick();
+      playerNameInput.value = playerName;
+      updateHeaderCounts();
+      shareModal.classList.remove('hidden');
+    });
+
+    playerBadgeName.addEventListener('click', () => {
+      sound.playClick();
+      playerNameInput.value = playerName;
+      updateHeaderCounts();
+      shareModal.classList.remove('hidden');
+    });
+
+    btnShareFromDex.addEventListener('click', () => {
+      dexModal.classList.add('hidden');
+      playerNameInput.value = playerName;
+      updateHeaderCounts();
+      shareModal.classList.remove('hidden');
+    });
+
+    closeShareBtn.addEventListener('click', () => shareModal.classList.add('hidden'));
+
+    savePlayerNameBtn.addEventListener('click', () => {
+      const val = playerNameInput.value.trim();
+      if (val) {
+        playerName = val;
+        savePlayerData();
+        sound.playClick();
+      }
+    });
+
+    copyShareTextBtn.addEventListener('click', () => {
+      shareTextPreview.select();
+      document.execCommand('copy');
+      sound.playClick();
+      copyShareTextBtn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i><span>Copied to Clipboard!</span>`;
+      lucide.createIcons();
+      setTimeout(() => {
+        copyShareTextBtn.innerHTML = `<i data-lucide="copy" class="w-4 h-4"></i><span>Copy Challenge Message to Clipboard</span>`;
+        lucide.createIcons();
+      }, 2500);
+    });
+
+    resetDataBtn.addEventListener('click', () => {
+      catchesData = {};
+      savePlayerData();
+      loadNewPokemon();
+      shareModal.classList.add('hidden');
+    });
+
+    // Kana Chart Populator
+    const KANA_PAIRS = [
+      { r: 'a', k: 'ア', h: 'あ' }, { r: 'i', k: 'イ', h: 'い' }, { r: 'u', k: 'ウ', h: 'う' }, { r: 'e', k: 'エ', h: 'え' }, { r: 'o', k: 'オ', h: 'お' },
+      { r: 'ka', k: 'カ', h: 'か' }, { r: 'ki', k: 'キ', h: 'き' }, { r: 'ku', k: 'ク', h: 'く' }, { r: 'ke', k: 'ケ', h: 'け' }, { r: 'ko', k: 'コ', h: 'こ' },
+      { r: 'sa', k: 'サ', h: 'さ' }, { r: 'shi', k: 'シ', h: 'し' }, { r: 'su', k: 'ス', h: 'す' }, { r: 'se', k: 'セ', h: 'せ' }, { r: 'so', k: 'ソ', h: 'そ' },
+      { r: 'ta', k: 'タ', h: 'た' }, { r: 'chi', k: 'チ', h: 'ち' }, { r: 'tsu', k: 'ツ', h: 'つ' }, { r: 'te', k: 'テ', h: 'て' }, { r: 'to', k: 'ト', h: 'と' },
+      { r: 'na', k: 'ナ', h: 'な' }, { r: 'ni', k: 'ニ', h: 'に' }, { r: 'nu', k: 'ヌ', h: 'ぬ' }, { r: 'ne', k: 'ネ', h: 'ね' }, { r: 'no', k: 'ノ', h: 'の' },
+      { r: 'ha', k: 'ハ', h: 'は' }, { r: 'hi', k: 'ヒ', h: 'ひ' }, { r: 'fu', k: 'フ', h: 'ふ' }, { r: 'he', k: 'ヘ', h: 'へ' }, { r: 'ho', k: 'ホ', h: 'ほ' },
+      { r: 'ma', k: 'マ', h: 'ま' }, { r: 'mi', k: 'ミ', h: 'み' }, { r: 'mu', k: 'ム', h: 'む' }, { r: 'me', k: 'メ', h: 'め' }, { r: 'mo', k: 'モ', h: 'も' },
+      { r: 'ya', k: 'ヤ', h: 'や' }, { r: '—', k: '', h: '' }, { r: 'yu', k: 'ユ', h: 'ゆ' }, { r: '—', k: '', h: '' }, { r: 'yo', k: 'ヨ', h: 'よ' },
+      { r: 'ra', k: 'ラ', h: 'ら' }, { r: 'ri', k: 'リ', h: 'り' }, { r: 'ru', k: 'ル', h: 'る' }, { r: 're', k: 'レ', h: 'れ' }, { r: 'ro', k: 'ロ', h: 'ろ' },
+      { r: 'wa', k: 'ワ', h: 'わ' }, { r: '—', k: '', h: '' }, { r: 'n', k: 'ン', h: 'ん' }, { r: '—', k: '', h: '' }, { r: 'wo', k: 'ヲ', h: 'を' }
+    ];
+
+    const kanaGridContainer = document.getElementById('kanaGridContainer');
+    KANA_PAIRS.forEach(item => {
+      const cell = document.createElement('div');
+      cell.className = 'p-2 rounded-xl bg-slate-800/80 border border-slate-700/60 flex flex-col items-center justify-center';
+      if (!item.k) {
+        cell.className += ' opacity-20';
+        cell.innerHTML = '<span class="text-slate-600">-</span>';
+      } else {
+        cell.innerHTML = `
+          <div class="flex items-center gap-1.5 font-japanese text-sm font-bold">
+            <span class="text-blue-400">${item.k}</span>
+            <span class="text-slate-500 text-[10px]">&rarr;</span>
+            <span class="text-emerald-400">${item.h}</span>
+          </div>
+          <span class="text-[10px] text-slate-400 uppercase font-mono mt-0.5">${item.r}</span>
+        `;
+      }
+      kanaGridContainer.appendChild(cell);
+    });
+
+    openChartBtn.addEventListener('click', () => {
+      sound.playClick();
+      chartModal.classList.remove('hidden');
+    });
+
+    closeChartBtn.addEventListener('click', () => chartModal.classList.add('hidden'));
+
+    chartModal.addEventListener('click', (e) => {
+      if (e.target === chartModal) chartModal.classList.add('hidden');
+    });
+
+    soundToggleBtn.addEventListener('click', () => {
+      sound.enabled = !sound.enabled;
+      if (sound.enabled) {
+        soundIcon.setAttribute('data-lucide', 'volume-2');
+        soundToggleBtn.classList.remove('text-slate-500');
+        soundToggleBtn.classList.add('text-slate-300');
+      } else {
+        soundIcon.setAttribute('data-lucide', 'volume-x');
+        soundToggleBtn.classList.add('text-slate-500');
+        soundToggleBtn.classList.remove('text-slate-300');
+      }
+      lucide.createIcons();
+    });
+
+    window.onload = function() {
+      lucide.createIcons();
+      updateHeaderCounts();
+      loadNewPokemon();
+    };
+  </script>
+</body>
+</html>
